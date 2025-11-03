@@ -4,8 +4,8 @@ process RSEM_CALCULATEEXPRESSION {
 
     conda "${moduleDir}/environment.yml"
     container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://community-cr-prod.seqera.io/docker/registry/v2/blobs/sha256/23/23651ffd6a171ef3ba867cb97ef615f6dd6be39158df9466fe92b5e844cd7d59/data' :
-        'community.wave.seqera.io/library/rsem_star:5acb4e8c03239c32' }"
+        'https://biocontainers/rsem:1.3.3--pl5321h87f3376_5' :
+        'biocontainers/rsem:1.3.3--pl5321h87f3376_5' }"
 
     input:
     tuple val(meta), path(reads)  // FASTQ files or BAM file for --alignments mode

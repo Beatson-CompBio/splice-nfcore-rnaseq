@@ -4,8 +4,8 @@ process BEDTOOLS_GENOMECOV {
 
     conda "${moduleDir}/environment.yml"
     container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://community-cr-prod.seqera.io/docker/registry/v2/blobs/sha256/63/6397750e9730a3fbcc5b4c43f14bd141c64c723fd7dad80e47921a68a7c3cd21/data':
-        'community.wave.seqera.io/library/bedtools_coreutils:a623c13f66d5262b' }"
+        'https://biocontainers/bedtools:2.31.0--hf5e1c6e_2':
+        'biocontainers/bedtools:2.31.0--hf5e1c6e_2' }"
 
     input:
     tuple val(meta), path(intervals), val(scale)

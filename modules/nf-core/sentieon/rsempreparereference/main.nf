@@ -5,8 +5,8 @@ process SENTIEON_RSEMPREPAREREFERENCE {
 
     conda "${moduleDir}/environment.yml"
     container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://community-cr-prod.seqera.io/docker/registry/v2/blobs/sha256/61/618669d3715d81208a7936180c7170c7dad065c187d3ad933efa01d81a9fc193/data' :
-        'community.wave.seqera.io/library/rsem_sentieon:1d3ad86b89bf5cc7' }"
+        'https://biocontainers/rsem:1.3.3--pl5321h87f3376_5' :
+        'biocontainers/rsem:1.3.3--pl5321h87f3376_5' }"
 
     input:
     path fasta, stageAs: "rsem/*"
