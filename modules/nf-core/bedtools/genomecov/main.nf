@@ -4,7 +4,7 @@ process BEDTOOLS_GENOMECOV {
 
     conda "${moduleDir}/environment.yml"
     container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://biocontainers/bedtools:2.31.0--hf5e1c6e_2':
+        'biocontainers/bedtools:2.31.0--hf5e1c6e_2':
         'biocontainers/bedtools:2.31.0--hf5e1c6e_2' }"
 
     input:

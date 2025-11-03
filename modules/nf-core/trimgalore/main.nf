@@ -4,7 +4,7 @@ process TRIMGALORE {
 
     conda "${moduleDir}/environment.yml"
     container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container
-        ? 'https://biocontainers/trim-galore:0.6.7--hdfd78af_0'
+        ? 'biocontainers/trim-galore:0.6.7--hdfd78af_0'
         : 'biocontainers/trim-galore:0.6.7--hdfd78af_0'}"
 
     input:

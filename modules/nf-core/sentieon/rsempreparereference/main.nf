@@ -5,7 +5,7 @@ process SENTIEON_RSEMPREPAREREFERENCE {
 
     conda "${moduleDir}/environment.yml"
     container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://biocontainers/rsem:1.3.3--pl5321h87f3376_5' :
+        'biocontainers/rsem:1.3.3--pl5321h87f3376_5' :
         'biocontainers/rsem:1.3.3--pl5321h87f3376_5' }"
 
     input:

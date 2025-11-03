@@ -4,7 +4,7 @@ process BRACKEN_BRACKEN {
 
     conda "${moduleDir}/environment.yml"
     container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://biocontainers/base:latest':
+        'biocontainers/base:latest':
         'biocontainers/base:latest' }"
 
     input:

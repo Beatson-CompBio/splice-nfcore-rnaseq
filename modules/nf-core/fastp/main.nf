@@ -4,7 +4,7 @@ process FASTP {
 
     conda "${moduleDir}/environment.yml"
     container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://biocontainers/fastp:0.23.4--h5f740d0_0' :
+        'biocontainers/fastp:0.23.4--h5f740d0_0' :
         'biocontainers/fastp:0.23.4--h5f740d0_0' }"
 
     input:

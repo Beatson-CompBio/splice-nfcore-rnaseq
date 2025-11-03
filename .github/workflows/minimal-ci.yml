@@ -1,0 +1,33 @@
+name: Minimal CI
+
+on:
+  push:
+    branches: [ dev, main ]
+  pull_request:
+    branches: [ dev, main ]
+  workflow_dispatch:
+
+jobs:
+  validate:
+    name: Validate Pipeline
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        
+      - name: Install Nextflow
+        uses: nf-core/setup-nextflow@v2
+        with:
+          version: "24.04.4"
+          
+      - name: Test configuration
+        run: |
+          nextflow config . -profile test
+          
+      - name: Test help
+        run: |
+          nextflow run . --help
+          
+      - name: Success
+        run: echo "✅ Pipeline validation successful"
