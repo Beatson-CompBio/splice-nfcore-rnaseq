@@ -14,23 +14,36 @@ jobs:
   test:
     name: Run pipeline tests
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Check out pipeline code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Java 11
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '11'
 
       - name: Install Nextflow
         uses: nf-core/setup-nextflow@v2
         with:
           version: "${{ env.NXF_VER }}"
 
+      - name: Verify Java and Nextflow
+        run: |
+          java -version
+          nextflow -version
+
       - name: Run pipeline with test data
         run: |
-          nextflow run ${GITHUB_WORKSPACE} \
+          nextflow run . \
             -profile test,github_actions \
             -c conf/independent.config \
             --outdir ./results
-            
+
       - name: Upload test results
         uses: actions/upload-artifact@v4
         if: always()
