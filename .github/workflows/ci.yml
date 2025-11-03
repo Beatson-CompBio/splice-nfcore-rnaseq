@@ -8,7 +8,7 @@ on:
 
 env:
   NXF_ANSI_LOG: false
-  NXF_VER: '24.04.4'
+  NXF_VER: '24.10.0'
 
 jobs:
   test:
