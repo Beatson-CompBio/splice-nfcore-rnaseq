@@ -2,9 +2,9 @@ name: CI Tests
 
 on:
   push:
-    branches: [ main, develop, master ]
+    branches: [ main, develop, master, dev ]
   pull_request:
-    branches: [ main, master ]
+    branches: [ main, master, dev ]
 
 env:
   NXF_ANSI_LOG: false
