@@ -1,0 +1,64 @@
+name: Manual Trigger Test
+
+on:
+  workflow_dispatch:
+    inputs:
+      test_profile:
+        description: 'Test profile to use'
+        required: true
+        default: 'test'
+        type: choice
+        options:
+          - test
+          - preprocessing_only
+          - quantification_only
+      nextflow_version:
+        description: 'Nextflow version'
+        required: false
+        default: '24.04.4'
+
+env:
+  NXF_ANSI_LOG: false
+
+jobs:
+  manual-test:
+    name: Manual Test Run
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Check out pipeline code
+        uses: actions/checkout@v4
+        
+      - name: Show environment info
+        run: |
+          echo "Repository: ${{ github.repository }}"
+          echo "Branch: ${{ github.ref_name }}"
+          echo "Profile: ${{ github.event.inputs.test_profile }}"
+          echo "Nextflow version: ${{ github.event.inputs.nextflow_version }}"
+          
+      - name: Install Nextflow
+        uses: nf-core/setup-nextflow@v2
+        with:
+          version: "${{ github.event.inputs.nextflow_version }}"
+
+      - name: Test pipeline configuration
+        run: |
+          nextflow config ${GITHUB_WORKSPACE} \
+            -profile ${{ github.event.inputs.test_profile }},github_actions \
+            -c conf/independent.config
+
+      - name: Run pipeline test
+        run: |
+          nextflow run ${GITHUB_WORKSPACE} \
+            -profile ${{ github.event.inputs.test_profile }},github_actions \
+            -c conf/independent.config \
+            --outdir ./results
+            
+      - name: Upload results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: manual-test-${{ github.event.inputs.test_profile }}-${{ github.run_number }}
+          path: |
+            ./results/
+            .nextflow.log

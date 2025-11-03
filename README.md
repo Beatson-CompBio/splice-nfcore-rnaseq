@@ -1,153 +1,305 @@
-<h1>
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="docs/images/nf-core-rnaseq_logo_dark.png">
-    <img alt="nf-core/rnaseq" src="docs/images/nf-core-rnaseq_logo_light.png">
-  </picture>
-</h1>
+# SPLICE Bulk-RNAseq Modular Pipeline Usage Guide
 
-[![GitHub Actions CI Status](https://github.com/nf-core/rnaseq/actions/workflows/nf-test.yml/badge.svg)](https://github.com/nf-core/rnaseq/actions/workflows/nf-test.yml)
-[![GitHub Actions Linting Status](https://github.com/nf-core/rnaseq/actions/workflows/linting.yml/badge.svg)](https://github.com/nf-core/rnaseq/actions/workflows/linting.yml)[![AWS CI](https://img.shields.io/badge/CI%20tests-full%20size-FF9900?labelColor=000000&logo=Amazon%20AWS)](https://nf-co.re/rnaseq/results)[![Cite with Zenodo](http://img.shields.io/badge/DOI-10.5281/zenodo.1400710-1073c8?labelColor=000000)](https://doi.org/10.5281/zenodo.1400710)
-[![nf-test](https://img.shields.io/badge/unit_tests-nf--test-337ab7.svg)](https://www.nf-test.com)
+## Overview
 
-[![Nextflow](https://img.shields.io/badge/version-%E2%89%A524.10.5-green?style=flat&logo=nextflow&logoColor=white&color=%230DC09D&link=https%3A%2F%2Fnextflow.io)](https://www.nextflow.io/)
-[![nf-core template version](https://img.shields.io/badge/nf--core_template-3.3.2-green?style=flat&logo=nfcore&logoColor=white&color=%2324B064&link=https%3A%2F%2Fnf-co.re)](https://github.com/nf-core/tools/releases/tag/3.3.2)
-[![run with conda](http://img.shields.io/badge/run%20with-conda-3EB049?labelColor=000000&logo=anaconda)](https://docs.conda.io/en/latest/)
-[![run with docker](https://img.shields.io/badge/run%20with-docker-0db7ed?labelColor=000000&logo=docker)](https://www.docker.com/)
-[![run with singularity](https://img.shields.io/badge/run%20with-singularity-1d355c.svg?labelColor=000000)](https://sylabs.io/docs/)
-[![Launch on Seqera Platform](https://img.shields.io/badge/Launch%20%F0%9F%9A%80-Seqera%20Platform-%234256e7)](https://cloud.seqera.io/launch?pipeline=https://github.com/nf-core/rnaseq)
+This custom RNA-seq pipeline now supports **modular execution**, allowing you to run individual stages or combinations without modifying the core code. This is perfect for:
 
-[![Get help on Slack](http://img.shields.io/badge/slack-nf--core%20%23rnaseq-4A154B?labelColor=000000&logo=slack)](https://nfcore.slack.com/channels/rnaseq)[![Follow on Bluesky](https://img.shields.io/badge/bluesky-%40nf__core-1185fe?labelColor=000000&logo=bluesky)](https://bsky.app/profile/nf-co.re)[![Follow on Mastodon](https://img.shields.io/badge/mastodon-nf__core-6364ff?labelColor=FFFFFF&logo=mastodon)](https://mstdn.science/@nf_core)[![Watch on YouTube](http://img.shields.io/badge/youtube-nf--core-FF0000?labelColor=000000&logo=youtube)](https://www.youtube.com/c/nf-core)
+- **Resuming interrupted workflows**
+- **Testing individual stages**
+- **Processing different data types**
+- **Resource optimization**
+- **Debugging specific steps**
 
-## Introduction
+## Directory Structure
 
-**nf-core/rnaseq** is a bioinformatics pipeline that can be used to analyse RNA sequencing data obtained from organisms with a reference genome and annotation. It takes a samplesheet with FASTQ files or pre-aligned BAM files as input, performs quality control (QC), trimming and (pseudo-)alignment, and produces a gene expression matrix and extensive QC report.
+Your pipeline expects this specific directory structure:
 
-![nf-core/rnaseq metro map](docs/images/nf-core-rnaseq_metro_map_grey_animated.svg)
-
-> In case the image above is not loading, please have a look at the [static version](docs/images/nf-core-rnaseq_metro_map_grey.png).
-
-1. Merge re-sequenced FastQ files ([`cat`](http://www.linfo.org/cat.html))
-2. Auto-infer strandedness by subsampling and pseudoalignment ([`fq`](https://github.com/stjude-rust-labs/fq), [`Salmon`](https://combine-lab.github.io/salmon/))
-3. Read QC ([`FastQC`](https://www.bioinformatics.babraham.ac.uk/projects/fastqc/))
-4. UMI extraction ([`UMI-tools`](https://github.com/CGATOxford/UMI-tools))
-5. Adapter and quality trimming ([`Trim Galore!`](https://www.bioinformatics.babraham.ac.uk/projects/trim_galore/))
-6. Removal of genome contaminants ([`BBSplit`](http://seqanswers.com/forums/showthread.php?t=41288))
-7. Removal of ribosomal RNA ([`SortMeRNA`](https://github.com/biocore/sortmerna))
-8. Choice of multiple alignment and quantification routes (_For `STAR` the sentieon implementation can be chosen_):
-   1. [`STAR`](https://github.com/alexdobin/STAR) -> [`Salmon`](https://combine-lab.github.io/salmon/)
-   2. [`STAR`](https://github.com/alexdobin/STAR) -> [`RSEM`](https://github.com/deweylab/RSEM)
-   3. [`HiSAT2`](https://ccb.jhu.edu/software/hisat2/index.shtml) -> **NO QUANTIFICATION**
-9. Sort and index alignments ([`SAMtools`](https://sourceforge.net/projects/samtools/files/samtools/))
-10. UMI-based deduplication ([`UMI-tools`](https://github.com/CGATOxford/UMI-tools))
-11. Duplicate read marking ([`picard MarkDuplicates`](https://broadinstitute.github.io/picard/))
-12. Transcript assembly and quantification ([`StringTie`](https://ccb.jhu.edu/software/stringtie/))
-13. Create bigWig coverage files ([`BEDTools`](https://github.com/arq5x/bedtools2/), [`bedGraphToBigWig`](http://hgdownload.soe.ucsc.edu/admin/exe/))
-14. Extensive quality control:
-    1. [`RSeQC`](http://rseqc.sourceforge.net/)
-    2. [`Qualimap`](http://qualimap.bioinfo.cipf.es/)
-    3. [`dupRadar`](https://bioconductor.org/packages/release/bioc/html/dupRadar.html)
-    4. [`Preseq`](http://smithlabresearch.org/software/preseq/)
-    5. [`DESeq2`](https://bioconductor.org/packages/release/bioc/html/DESeq2.html)
-    6. [`Kraken2`](https://ccb.jhu.edu/software/kraken2/) -> [`Bracken`](https://ccb.jhu.edu/software/bracken/) on unaligned sequences; _optional_
-15. Pseudoalignment and quantification ([`Salmon`](https://combine-lab.github.io/salmon/) or ['Kallisto'](https://pachterlab.github.io/kallisto/); _optional_)
-16. Present QC for raw read, alignment, gene biotype, sample similarity, and strand-specificity checks ([`MultiQC`](http://multiqc.info/), [`R`](https://www.r-project.org/))
-
-> **Note**
-> The SRA download functionality has been removed from the pipeline (`>=3.2`) and ported to an independent workflow called [nf-core/fetchngs](https://nf-co.re/fetchngs). You can provide `--nf_core_pipeline rnaseq` when running nf-core/fetchngs to download and auto-create a samplesheet containing publicly available samples that can be accepted directly as input by this pipeline.
-
-> **Warning**
-> Quantification isn't performed if using `--aligner hisat2` due to the lack of an appropriate option to calculate accurate expression estimates from HISAT2 derived genomic alignments. However, you can use this route if you have a preference for the alignment, QC and other types of downstream analysis compatible with the output of HISAT2.
-
-## Usage
-
-> [!NOTE]
-> If you are new to Nextflow and nf-core, please refer to [this page](https://nf-co.re/docs/usage/installation) on how to set-up Nextflow. Make sure to [test your setup](https://nf-co.re/docs/usage/introduction#how-to-run-a-pipeline) with `-profile test` before running the workflow on actual data.
-
-First, prepare a samplesheet with your input data that looks as follows:
-
-**samplesheet.csv**:
-
-```csv
-sample,fastq_1,fastq_2,strandedness
-CONTROL_REP1,AEG588A1_S1_L002_R1_001.fastq.gz,AEG588A1_S1_L002_R2_001.fastq.gz,auto
-CONTROL_REP1,AEG588A1_S1_L003_R1_001.fastq.gz,AEG588A1_S1_L003_R2_001.fastq.gz,auto
-CONTROL_REP1,AEG588A1_S1_L004_R1_001.fastq.gz,AEG588A1_S1_L004_R2_001.fastq.gz,auto
+```
+{job_id}/                           # UUID job directory (e.g., ae3a9e47-63cf-44ce-8405-10f67672ba2d)
+├── input_data/
+│   ├── containers/                 # Singularity cache (your pre-downloaded containers)
+│   │   ├── depot.galaxyproject.org-singularity-fastqc-0.12.1--hdfd78af_0.img
+│   │   ├── depot.galaxyproject.org-singularity-multiqc-1.30--pyhdfd78af_0.img
+│   │   ├── depot.galaxyproject.org-singularity-samtools-1.17--h00cdaf9_0.img
+│   │   └── ... (other containers)
+│   ├── data/                       # Input data directory
+│   │   ├── sample1_R1.fastq.gz
+│   │   ├── sample1_R2.fastq.gz
+│   │   ├── sample2_R1.fastq.gz
+│   │   ├── sample2_R2.fastq.gz
+│   │   ├── samplesheet.csv         # For full pipeline
+│   │   ├── trimmed_samplesheet.csv # For quantification-only
+│   │   ├── bam_samplesheet.csv     # For post-processing-only
+│   │   ├── reference_genome.fasta
+│   │   ├── reference_annotation.gtf
+│   │   └── ... (other reference files)
+│   └── nextflow/                   # Pipeline code
+│       ├── main.nf
+│       ├── nextflow.config
+│       ├── conf/
+│       ├── modules/
+│       └── ... (full pipeline)
+└── output_data/                    # Execution directory (run from here)
+    ├── work/                       # Nextflow work directory
+    ├── .nextflow/                  # Nextflow metadata
+    └── results/                    # Output results
 ```
 
-Each row represents a fastq file (single-end) or a pair of fastq files (paired end). Rows with the same sample identifier are considered technical replicates and merged automatically. The strandedness refers to the library preparation and will be automatically inferred if set to `auto`.
+## Modular Execution Options
 
-The pipeline supports a two-step reprocessing workflow using BAM files from previous runs. Run initially with `--save_align_intermeds` to generate a samplesheet with BAM paths, then reprocess using `--skip_alignment` for efficient downstream analysis without repeating expensive alignment steps. This feature is designed specifically for pipeline-generated BAMs.
+### **1. Preprocessing Only**
+**What it runs**: FastQC → FastP → Strandedness inference → FastQC (post-trim)
 
-> [!WARNING]
-> Please provide pipeline parameters via the CLI or Nextflow `-params-file` option. Custom config files including those provided by the `-c` Nextflow option can be used to provide any configuration _**except for parameters**_; see [docs](https://nf-co.re/docs/usage/getting_started/configuration#custom-configuration-files).
+**Use case**: Initial data QC and trimming
 
-Now, you can run the pipeline using:
+**Input required**: Raw FASTQ files + samplesheet
 
 ```bash
-nextflow run nf-core/rnaseq \
-    --input <SAMPLESHEET> \
-    --outdir <OUTDIR> \
-    --gtf <GTF> \
-    --fasta <GENOME FASTA> \
-    -profile <docker/singularity/.../institute>
+cd output_data/
+
+nextflow run ../input_data/nextflow \
+  -profile splice_cruksi_hpc,preprocessing_only \
+  --job_id ae3a9e47-63cf-44ce-8405-10f67672ba2d \
+  --short_job_id a123 \
+  --fasta ../input_data/data/reference_genome.fasta \
+  --gtf ../input_data/data/reference_annotation.gtf
 ```
 
-For more details and further functionality, please refer to the [usage documentation](https://nf-co.re/rnaseq/usage) and the [parameter documentation](https://nf-co.re/rnaseq/parameters).
+**Output**:
+- Trimmed FASTQ files
+- FastQC reports (raw and trimmed)
+- Strandedness inference results
+- MultiQC preprocessing report
 
-## Pipeline output
+---
 
-To see the results of an example test run with a full size dataset refer to the [results](https://nf-co.re/rnaseq/results) tab on the nf-core website pipeline page.
-For more details about the output files and reports, please refer to the
-[output documentation](https://nf-co.re/rnaseq/output).
+### **2. Quantification Only**
+**What it runs**: STAR alignment → Salmon quantification (gene + transcript)
 
-This pipeline quantifies RNA-sequenced reads relative to genes/transcripts in the genome and normalizes the resulting data. It does not compare the samples statistically in order to assign significance in the form of FDR or P-values. For downstream analyses, the output files from this pipeline can be analysed directly in statistical environments like [R](https://www.r-project.org/), [Julia](https://julialang.org/) or via the [nf-core/differentialabundance](https://github.com/nf-core/differentialabundance/) pipeline.
+**Use case**: Have trimmed FASTQs, want counts
 
-## Online videos
+**Input required**: Trimmed FASTQ files + trimmed_samplesheet.csv
 
-A short talk about the history, current status and functionality on offer in this pipeline was given by Harshil Patel ([@drpatelh](https://github.com/drpatelh)) on [8th February 2022](https://nf-co.re/events/2022/bytesize-32-nf-core-rnaseq) as part of the nf-core/bytesize series.
+```bash
+cd output_data/
 
-You can find numerous talks on the [nf-core events page](https://nf-co.re/events) from various topics including writing pipelines/modules in Nextflow DSL2, using nf-core tooling, running nf-core pipelines as well as more generic content like contributing to Github. Please check them out!
+nextflow run ../input_data/nextflow \
+  -profile splice_cruksi_hpc,quantification_only \
+  --job_id ae3a9e47-63cf-44ce-8405-10f67672ba2d \
+  --short_job_id a123 \
+  --fasta ../input_data/data/reference_genome.fasta \
+  --gtf ../input_data/data/reference_annotation.gtf
+```
 
-## Credits
+**Output**:
+- BAM files (genome and transcriptome)
+- Gene and transcript count matrices
+- STAR alignment logs
+- Salmon quantification results
 
-These scripts were originally written for use at the [National Genomics Infrastructure](https://ngisweden.scilifelab.se), part of [SciLifeLab](http://www.scilifelab.se/) in Stockholm, Sweden, by Phil Ewels ([@ewels](https://github.com/ewels)) and Rickard Hammarén ([@Hammarn](https://github.com/Hammarn)).
+---
 
-The pipeline was re-written in Nextflow DSL2 and is primarily maintained by Harshil Patel ([@drpatelh](https://github.com/drpatelh)) from [Seqera Labs, Spain](https://seqera.io/).
+### **3. Post-processing Only**
+**What it runs**: SAMtools → Picard MarkDuplicates → BEDtools → BigWig → MultiQC
 
-The pipeline workflow diagram was initially designed by Sarah Guinchard ([@G-Sarah](https://github.com/G-Sarah)) and James Fellows Yates ([@jfy133](https://github.com/jfy133)), further modifications where made by Harshil Patel ([@drpatelh](https://github.com/drpatelh)) and Maxime Garcia ([@maxulysse](https://github.com/maxulysse)).
+**Use case**: Have BAM files, want final processed outputs
 
-Many thanks to other who have helped out along the way too, including (but not limited to):
+**Input required**: BAM files + bam_samplesheet.csv
 
-- [Alex Peltzer](https://github.com/apeltzer)
-- [Colin Davenport](https://github.com/colindaven)
-- [Denis Moreno](https://github.com/Galithil)
-- [Edmund Miller](https://github.com/edmundmiller)
-- [Gregor Sturm](https://github.com/grst)
-- [Jacki Buros Novik](https://github.com/jburos)
-- [Lorena Pantano](https://github.com/lpantano)
-- [Matthias Zepper](https://github.com/MatthiasZepper)
-- [Maxime Garcia](https://github.com/maxulysse)
-- [Olga Botvinnik](https://github.com/olgabot)
-- [@orzechoj](https://github.com/orzechoj)
-- [Paolo Di Tommaso](https://github.com/pditommaso)
-- [Rob Syme](https://github.com/robsyme)
+```bash
+cd output_data/
 
-## Contributions and Support
+nextflow run ../input_data/nextflow \
+  -profile splice_cruksi_hpc,postprocessing_only \
+  --job_id ae3a9e47-63cf-44ce-8405-10f67672ba2d \
+  --short_job_id a123 \
+  --fasta ../input_data/data/reference_genome.fasta
+```
 
-If you would like to contribute to this pipeline, please see the [contributing guidelines](.github/CONTRIBUTING.md).
+**Output**:
+- Processed BAM files (sorted, indexed, deduplicated)
+- BigWig coverage files
+- Comprehensive QC report
 
-For further information or help, don't hesitate to get in touch on the [Slack `#rnaseq` channel](https://nfcore.slack.com/channels/rnaseq) (you can join with [this invite](https://nf-co.re/join/slack)).
+---
 
-## Citations
+### **4. Preprocessing + Quantification**
+**What it runs**: FastQC → FastP → STAR-Salmon → Gene/Transcript counts
 
-If you use nf-core/rnaseq for your analysis, please cite it using the following doi: [10.5281/zenodo.1400710](https://doi.org/10.5281/zenodo.1400710)
+**Use case**: Want counts but skip post-processing
 
-An extensive list of references for the tools used by the pipeline can be found in the [`CITATIONS.md`](CITATIONS.md) file.
+```bash
+cd output_data/
 
-You can cite the `nf-core` publication as follows:
+nextflow run ../input_data/nextflow \
+  -profile splice_cruksi_hpc,preprocess_quantify \
+  --job_id ae3a9e47-63cf-44ce-8405-10f67672ba2d \
+  --short_job_id a123 \
+  --fasta ../input_data/data/reference_genome.fasta \
+  --gtf ../input_data/data/reference_annotation.gtf
+```
 
-> **The nf-core framework for community-curated bioinformatics pipelines.**
->
-> Philip Ewels, Alexander Peltzer, Sven Fillinger, Harshil Patel, Johannes Alneberg, Andreas Wilm, Maxime Ulysse Garcia, Paolo Di Tommaso & Sven Nahnsen.
->
-> _Nat Biotechnol._ 2020 Feb 13. doi: [10.1038/s41587-020-0439-x](https://dx.doi.org/10.1038/s41587-020-0439-x).
+---
+
+### **5. Quantification + Post-processing**
+**What it runs**: STAR-Salmon → SAMtools → Picard → BEDtools → BigWig
+
+**Use case**: Have trimmed FASTQs, want final processed outputs
+
+```bash
+cd output_data/
+
+nextflow run ../input_data/nextflow \
+  -profile splice_cruksi_hpc,quantify_postprocess \
+  --job_id ae3a9e47-63cf-44ce-8405-10f67672ba2d \
+  --short_job_id a123 \
+  --fasta ../input_data/data/reference_genome.fasta \
+  --gtf ../input_data/data/reference_annotation.gtf
+```
+
+---
+
+### **6. Full Pipeline**
+**What it runs**: All stages (your original streamlined configuration)
+
+**Use case**: Complete analysis from raw FASTQs to final outputs
+
+```bash
+cd output_data/
+
+nextflow run ../input_data/nextflow \
+  -profile splice_cruksi_hpc,full_pipeline \
+  --job_id ae3a9e47-63cf-44ce-8405-10f67672ba2d \
+  --short_job_id a123 \
+  --fasta ../input_data/data/reference_genome.fasta \
+  --gtf ../input_data/data/reference_annotation.gtf
+```
+
+## Sample Sheets for Different Stages
+
+### **1. Standard Samplesheet (samplesheet.csv)**
+For full pipeline and preprocessing:
+```csv
+sample,fastq_1,fastq_2,strandedness
+sample1,../input_data/data/sample1_R1.fastq.gz,../input_data/data/sample1_R2.fastq.gz,auto
+sample2,../input_data/data/sample2_R1.fastq.gz,../input_data/data/sample2_R2.fastq.gz,auto
+```
+
+### **2. Trimmed Samplesheet (trimmed_samplesheet.csv)**
+For quantification-only (after preprocessing):
+```csv
+sample,fastq_1,fastq_2,strandedness
+sample1,../output_data/preprocessing_results/sample1/sample1_1.trim.fastq.gz,../output_data/preprocessing_results/sample1/sample1_2.trim.fastq.gz,forward
+sample2,../output_data/preprocessing_results/sample2/sample2_1.trim.fastq.gz,../output_data/preprocessing_results/sample2/sample2_2.trim.fastq.gz,forward
+```
+
+### **3. BAM Samplesheet (bam_samplesheet.csv)**
+For post-processing-only (after quantification):
+```csv
+sample,bam,bai
+sample1,../output_data/quantification_results/sample1/sample1.Aligned.out.bam,../output_data/quantification_results/sample1/sample1.Aligned.out.bam.bai
+sample2,../output_data/quantification_results/sample2/sample2.Aligned.out.bam,../output_data/quantification_results/sample2/sample2.Aligned.out.bam.bai
+```
+
+## 🐳 Container Management
+
+### **Singularity Cache Setup**
+Your containers are pre-cached in `../input_data/containers/`. The pipeline will automatically use this cache:
+
+```bash
+# Example container files in cache:
+../input_data/containers/
+├── depot.galaxyproject.org-singularity-fastqc-0.12.1--hdfd78af_0.img
+├── depot.galaxyproject.org-singularity-fastp-0.23.4--h5f740d0_0.img  
+├── depot.galaxyproject.org-singularity-star-2.7.10a--h9ee0642_0.img
+├── depot.galaxyproject.org-singularity-salmon-1.10.1--h7e5ed60_0.img
+├── depot.galaxyproject.org-singularity-samtools-1.17--h00cdaf9_0.img
+├── depot.galaxyproject.org-singularity-picard-3.0.0--hdfd78af_0.img
+└── ...
+```
+
+### **Pre-downloading Containers**
+```bash
+# If you need to pre-download containers:
+singularity pull --dir ../input_data/containers/ docker://biocontainers/fastqc:0.12.1--hdfd78af_0
+singularity pull --dir ../input_data/containers/ docker://biocontainers/fastp:0.23.4--h5f740d0_0
+singularity pull --dir ../input_data/containers/ docker://biocontainers/mulled-v2-1fa26d1ce03c295fe2fdcf85831a92fbcbd7e8c2:59cdd445419f14abac76b31dd0d71217994cbcc9-0
+# ... etc for all containers
+```
+
+## Output Organization
+
+### **With job_id and short_job_id**
+```
+output_data/
+└── results/
+    └── ae3a9e47-63cf-44ce-8405-10f67672ba2d/    # job_id directory
+        ├── fastqc/
+        │   ├── a123_sample1_fastqc.html           # short_job_id prefix
+        │   └── a123_sample2_fastqc.html
+        ├── star_salmon/
+        │   ├── a123_salmon.merged.gene_counts.tsv
+        │   └── a123_salmon.merged.transcript_counts.tsv
+        └── multiqc/
+            └── a123_multiqc_report.html
+```
+
+### **Resource Usage by Profile**
+
+| Profile | STAR Memory | STAR CPUs | Salmon Memory | Salmon CPUs | Runtime |
+|---------|------------|-----------|---------------|-------------|---------|
+| preprocessing_only | - | - | - | - | 1-4h |
+| quantification_only | 64GB | 16 | 16GB | 8 | 4-12h |
+| postprocessing_only | - | - | - | - | 2-6h |
+| full_pipeline | 64GB | 16 | 16GB | 8 | 6-24h |
+
+## Advanced Usage
+
+### **Custom Parameters**
+```bash
+# Override default paths
+nextflow run ../input_data/nextflow \
+  -profile splice_cruksi_hpc,quantification_only \
+  --job_id ae3a9e47-63cf-44ce-8405-10f67672ba2d \
+  --short_job_id a123 \
+  --data_path /custom/path/to/data \
+  --container_cache_path /custom/path/to/containers
+
+# Override resource requirements
+nextflow run ../input_data/nextflow \
+  -profile splice_cruksi_hpc,full_pipeline \
+  --job_id ae3a9e47-63cf-44ce-8405-10f67672ba2d \
+  --max_memory 128.GB \
+  --max_cpus 24
+```
+
+### **Resume Functionality**
+```bash
+# Resume failed runs
+nextflow run ../input_data/nextflow \
+  -profile splice_cruksi_hpc,full_pipeline \
+  --job_id ae3a9e47-63cf-44ce-8405-10f67672ba2d \
+  --short_job_id a123 \
+  -resume
+```
+
+### **Testing Stages**
+```bash
+# Test with minimal resources
+nextflow run ../input_data/nextflow \
+  -profile splice_cruksi_hpc,preprocessing_only \
+  --job_id test_run \
+  --short_job_id test \
+  --max_cpus 4 \
+  --max_memory 16.GB
+```
+
+## Benefits of Modular Approach
+
+1. **Resource Efficiency** - Only use resources for needed stages
+2. **Debugging** - Isolate and test problematic stages
+3. **Flexibility** - Different input sources for each stage
+4. **Resumability** - Continue from any point in the workflow
+5. **Cost Optimization** - Run intensive stages only when needed
+6. **Development** - Test individual components during development
+

@@ -1,0 +1,64 @@
+name: Quick Validation
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  validate:
+    name: Quick Pipeline Validation
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Check out pipeline code
+        uses: actions/checkout@v4
+        
+      - name: Install Nextflow
+        uses: nf-core/setup-nextflow@v2
+        with:
+          version: "24.04.4"
+          
+      - name: Validate pipeline syntax
+        run: |
+          echo "Testing basic configuration..."
+          nextflow config ${GITHUB_WORKSPACE} -profile test
+          echo "✅ Basic configuration OK"
+          
+      - name: Test GitHub Actions profile
+        run: |
+          echo "Testing GitHub Actions profile..."
+          nextflow config ${GITHUB_WORKSPACE} -profile test,github_actions
+          echo "✅ GitHub Actions profile OK"
+          
+      - name: Test independent config
+        run: |
+          echo "Testing independent configuration..."
+          if [ -f "conf/independent.config" ]; then
+            nextflow config ${GITHUB_WORKSPACE} -profile test -c conf/independent.config
+            echo "✅ Independent config OK"
+          else
+            echo "⚠️ Independent config not found"
+          fi
+          
+      - name: Show pipeline help
+        run: |
+          echo "Getting pipeline help..."
+          nextflow run ${GITHUB_WORKSPACE} --help
+          echo "✅ Pipeline help OK"
+          
+      - name: Create validation summary
+        run: |
+          echo "# Validation Summary" > validation_summary.txt
+          echo "- Repository: ${{ github.repository }}" >> validation_summary.txt
+          echo "- Branch: ${{ github.ref_name }}" >> validation_summary.txt
+          echo "- Commit: ${{ github.sha }}" >> validation_summary.txt
+          echo "- Nextflow: 24.04.4" >> validation_summary.txt
+          echo "- Status: ✅ All validations passed" >> validation_summary.txt
+          cat validation_summary.txt
+          
+      - name: Upload validation summary
+        uses: actions/upload-artifact@v4
+        with:
+          name: validation-summary-${{ github.run_number }}
+          path: validation_summary.txt
